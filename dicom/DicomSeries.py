@@ -40,7 +40,7 @@ class DicomSeries():
         '''
         Add new image to the series
         '''  
-        # NB: Images in imgData are ordered by SOPInstanceUID, which should be unique for any image. 
+        # NB: Images in imgData are ordered by SOPInstanceUID, which should be unique for every image. 
         imgId = str(dcm.SOPInstanceUID)
         self.imgData[imgId] = dcm.pixel_array.astype(float)
 

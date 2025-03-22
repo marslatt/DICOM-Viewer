@@ -63,7 +63,8 @@ class DicomIO():
         except Exception as e:
             print(e)
         finally:
-            os.remove(file for file in zippath)  # Clean up extracted files     
+            for file in zippath:
+                os.remove(file)  # Clean up extracted files   
 
     def writeDICOM(self, path: str, ds: DicomSeries):
         '''
