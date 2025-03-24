@@ -1,4 +1,5 @@
 DICOM Viewer using Pydicom, Tkinter, Pillow, Python3
+Icons by <a target="_blank" href="https://icons8.com">Icons8</a>
 
 1. Install pipenv with 'pip install pipenv'  
 

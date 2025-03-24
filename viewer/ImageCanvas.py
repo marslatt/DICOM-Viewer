@@ -66,3 +66,4 @@ class ImageCanvas(Frame):
         self.currimg = ImageTk.PhotoImage(resized)
         self.display.delete("IMG")
         self.display.create_image(0, 0, image=self.currimg, anchor=NW, tags="IMG")
+

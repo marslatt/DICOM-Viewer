@@ -1,9 +1,8 @@
-from PIL import Image, ImageFilter, ImageOps
-from tkinter import Menubutton, Frame, Menu, PhotoImage, Label, Button
-from tkinter import LEFT, TOP, X, FLAT, RAISED, BOTH, Y 
+from PIL import Image, ImageOps
+from tkinter import Frame, PhotoImage, Label, Button, Canvas
+from tkinter import LEFT, RIGHT, TOP, X, FLAT, RAISED, BOTH, Y 
 from tkinter import filedialog as fd 
-from tkinter import ttk
-from threading import Timer
+from tkinter import ttk 
 from dicom import DicomIO
 from viewer import ImageCanvas
 import webbrowser
@@ -30,118 +29,90 @@ class ImageViewer(Frame):
         self.initGUI()
 
     def initGUI(self):
-        self.master.title("DICOM Viewer")
+        self.master.title("DICOM AI Lab")
         self.master.state('zoomed')
         self.master.overrideredirect(False)
         self.master.bind("<Escape>", lambda event: self.master.quit())
         self.loadIcons()
         self.loadMenu()
 
+        # Zoom in/out
+        self.bind("<Key>", self.onKeyPress)        
+        self.focus_set() # Make sure the frame can receive focus
+
+        # Right side bar
+        self.rightBar = Frame(self.master, bd=1, relief=RAISED, width=360)
+        self.rightBar.pack(side=RIGHT, fill=Y)
+
+        # Left side bar
+        self.leftBar = Frame(self.master, bd=1, relief=RAISED, width=160)
+        self.leftBar.pack(side=LEFT, fill=Y)
+
         # DICOM images Preview bar
-        self.previewbar = Frame(self.master, bd=1, relief=RAISED)
-        self.previewbar.pack(side=LEFT, fill=Y)
+        self.previewBar = Frame(self.leftBar, bd=1, relief=RAISED, width=160)
+        self.previewBar.pack(side=LEFT, fill=Y)  
+
+    def onKeyPress(self, event):
+        if event.keysym == "equal" and (event.state & 0x0004):  # 0x0004 is the modifier for Ctrl
+            if self.canvas:
+                self.canvas.zoomin()
+        if event.keysym == "minus" and (event.state & 0x0004): 
+            if self.canvas:
+                self.canvas.zoomout() 
 
     def loadIcons(self): 
-        icons = ['addimg', 'expimg', 'editimg', 'zoomin', 'zoomout', 'histogram', 'help', 'details', 'animate', 'revert'] # 'anonymize'
-        for icon in icons:
-            self.icons[icon] = PhotoImage(file=os.path.join(ICONPATH, f"{icon}.png"))
+        icons = ['openseries', 'exportimg',                  
+                 'rotate', 'flipvert', 'fliphoriz', 'histogram', 'revert',
+                 'analyze', 'segmentation', 'noisereduct', 'edgedetect',
+                 'help' ]    
+        self.icons = {icon: PhotoImage(file=os.path.join(ICONPATH, f"{icon}.png")) for icon in icons}
  
     def loadMenu(self):
         # Main menu
         self.menubar = Frame(self.master, bd=1, relief=RAISED)
         self.menubar.pack(side=TOP, fill=X)
 
-        # Open
-        btnOpen = Menubutton(self.menubar, relief=FLAT, compound=TOP, text="Open", image=self.icons['addimg'])
-        btnOpen.pack(side=LEFT, padx=0, pady=0)
-        menuOpen = Menu(btnOpen, tearoff=0)
-        menuOpen.add_command(label="Open DICOM Image", command=self.onOpenDICOM)
-        menuOpen.add_command(label="Open ZIP File", command=self.onOpenZIP)
-        btnOpen.config(menu=menuOpen)
+        button_data = [
+            ("Open", 'openseries', self.onOpen),  # Open Series
+            ("Export", 'exportimg', self.onExport),  # Export Image
+            ("Rotate", 'rotate', self.onRotate),  # Rotate 90 CW
+            ("Flip Vertical", 'flipvert', self.onFlipVertical),  # Flip Vertical
+            ("Flip Horizontal", 'fliphoriz', self.onFlipHorizontal),  # Flip Horizontal
+            ("Equalize", 'histogram', self.onEqualize),  # Equalize Histogram
+            ("Revert", 'revert', self.onRevert),  # Revert Changes 
+            ("LLM Analysis", 'analyze', self.onAnalyze),  # Analyze with LLM  
+            ("Segmentation", 'segmentation', self.onSegment),  # Segmentation
+            ("Denoise", 'noisereduct', self.onNoiseReduct),  # Noise Reduction
+            ("Extract Edges", 'edgedetect', self.onEdgeDetect),  # Edge Detection
+            ("Help", 'help', self.onDocumentation)  # Open Documentation
+        ]
 
-        # Export
-        btnExport = Menubutton(self.menubar, relief=FLAT, compound=TOP, text="Export", image=self.icons['expimg'])
-        btnExport.pack(side=LEFT, padx=0, pady=0)
-        menuExport = Menu(btnExport, tearoff=0)
-        menuExport.add_command(label="Export Current Image", command=self.onExportImg)
-        menuExport.add_command(label="Export Current Series", command=self.onExportSeries)
-        btnExport.config(menu=menuExport)
+        for text, icon, command in button_data:
+            button = Button(self.menubar, relief=FLAT, compound=TOP, text=text, image=self.icons[icon], command=command, pady=5) 
+            button.pack(side=LEFT, padx=0, pady=0)
 
-        # Edit
-        btnEdit = Menubutton(self.menubar, relief=FLAT, compound=TOP, text="Edit", image=self.icons['editimg'])
-        btnEdit.pack(side=LEFT, padx=0, pady=0)
-        menuEdit = Menu(btnEdit, tearoff=0)
-        menuEdit.add_command(label='Sharpen', command=self.onSharpenImg)
-        menuEdit.add_command(label='Smooth', command=self.onSmoothImg)
-        menuEdit.add_separator()
-        menuEdit.add_command(label="Rotate 90' CW", command=self.onRotateRight90Img)
-        menuEdit.add_command(label="Rotate 180' CW", command=self.onRotateRight180Img)
-        menuEdit.add_separator()
-        menuEdit.add_command(label="Flip Horizontal", command=self.onFlipHorzImg)
-        menuEdit.add_command(label="Flip Vertical", command=self.onFlipVertImg)
-        btnEdit.config(menu=menuEdit)
-
-        # Revert Image
-        btnRevert = Button(self.menubar, relief=FLAT, compound=TOP, text="Revert", image=self.icons['revert'],
-                           command=self.onRevertImg, pady=5)
-        btnRevert.pack(side=LEFT, padx=0, pady=0)
-
-        separator1 = ttk.Separator(self.menubar, orient='vertical')
-        separator1.pack(side=LEFT, padx=2, pady=0, fill='y')
-
-        # Zoom In
-        btnZoomIn = Button(self.menubar, relief=FLAT, compound=TOP, text="Zoom In", image=self.icons['zoomin'],
-                           command=self.onZoomIn, pady=5)
-        btnZoomIn.pack(side=LEFT, padx=0, pady=0)
-
-        # Zoom Out
-        btnZoomOut = Button(self.menubar, relief=FLAT, compound=TOP, text="Zoom Out", image=self.icons['zoomout'],
-                            command=self.onZoomOut, pady=5)
-        btnZoomOut.pack(side=LEFT, padx=0, pady=0)
-
-        # Information / Annotations
-        btnInfo = Button(self.menubar, relief=FLAT, compound=TOP, text="Annotations", image=self.icons['details'],
-                         command=self.onAnnotation, pady=5)
-        btnInfo.pack(side=LEFT, padx=0, pady=0)
-
-        separator2 = ttk.Separator(self.menubar, orient='vertical')
-        separator2.pack(side=LEFT, padx=2, pady=0, fill='y')
-
-        # Histogram Equalization
-        btnHistogram = Button(self.menubar, relief=FLAT, compound=TOP, text="Equalize", image=self.icons['histogram'],
-                              command=self.onEqualizeImg, pady=5)
-        btnHistogram.pack(side=LEFT, padx=0, pady=0)
-
-        # Animate
-        btnAnimate = Button(self.menubar, relief=FLAT, compound=TOP, text="Animate", image=self.icons['animate'],
-                            command=self.onAnimate, pady=5)
-        btnAnimate.pack(side=LEFT, padx=0, pady=0)
-
-        separator3 = ttk.Separator(self.menubar, orient='vertical')
-        separator3.pack(side=LEFT, padx=2, pady=0, fill='y')
-
-        # Help
-        btnHelp = Button(self.menubar, relief=FLAT, compound=TOP, text="Help", image=self.icons['help'],
-                         command=self.onDocumentation, pady=5)
-        btnHelp.pack(side=LEFT, padx=0, pady=0)
+            if text in ["Export", "Revert", "Extract Edges"]:
+                # Add separator after buttons (but not for the last one)
+                separator = ttk.Separator(self.menubar, orient='vertical')
+                separator.pack(side=LEFT, padx=2, pady=0, fill='y')
 
     def reloadPreviewBar(self):
         # Clear all previously loaded images
-        for c in filter(None, self.previewbar.winfo_children()):
+        for c in filter(None, self.previewBar.winfo_children()):
             c.destroy()
 
         for ds in self.controller.getData():
             sid = ds.getSerId() 
-            # Generate tkinter-friendly sid as name           
+            # Generate tkinter-friendly name for sid           
             name = sid.replace('.', "_") 
             # Create preview image
             self.previews.append(self.controller.generatePreview(sid))
-            label = Label(self.previewbar, image=self.previews[-1], name=name)
+            label = Label(self.previewBar, image=self.previews[-1], name=name)
             label.pack(side=TOP, padx=5, pady=5, fill='x')
             label.bind("<Button-1>", lambda e: self.onOpenImgCanvas(e))
             # Create image series
             self.images[sid] = self.controller.generateImages(sid)
-            # Create series description
+            # Create description
             self.descr[sid] = self.controller.generateAttributeData(sid)
 
     def onOpenImgCanvas(self, e):
@@ -149,114 +120,99 @@ class ImageViewer(Frame):
             self.canvas.destroy()
         # Get sid out of widget name 
         self.imgkey = str(e.widget)[str(e.widget).rfind('.') + 1:].replace('_', '.')
-        self.canvas = ImageCanvas(self.master, self.images[self.imgkey], self.descr[self.imgkey])
+        self.canvas = ImageCanvas(self.master, self.images[self.imgkey], "") # self.descr[self.imgkey])
         self.canvas.pack(fill=BOTH, expand=True)
+        self.onShowDICOMData(self.imgkey)
 
-    def onOpenDICOM(self):
+    def onOpen(self):
         self.controller.clearData()
-        files = fd.askopenfilenames(parent=self.master, title='Choose a DICOM File', filetypes=[("DICOM", ".dcm .DCM")])
+        files = fd.askopenfilenames(
+            parent=self.master,
+            title='Choose a DICOM File',
+            filetypes=[("Files", "*.dcm;*.DCM")]
+        )
         self.controller.readData(files)
-
+        
+        for c in filter(None, self.rightBar.winfo_children()):  # TODO
+            c.destroy()
         if self.canvas:
             self.canvas.destroy()
         self.reloadPreviewBar()
-
-    def onOpenZIP(self):
-        self.controller.clearData()
-        file = fd.askopenfilename(parent=self.master, title='Choose a Zip File', filetypes=[("ZIP", ".zip .ZIP")])
-        self.controller.readData(file)
-
-        if self.canvas:
-            self.canvas.destroy()
-        self.reloadPreviewBar()
-
-    def onExportImg(self):
+ 
+    def onExport(self):
         pass
-        # TODO
-
-    def onExportSeries(self):
-        pass
-        # self.controller.writeData(path, ds)
-        # TODO
-
-    def onSmoothImg(self):
-        if self.imgkey:
-            self.images[self.imgkey] = [i.filter(ImageFilter.GaussianBlur) for i in self.images[self.imgkey]]
-            self.canvas.reset(self.images[self.imgkey])
-            self.canvas.redraw()
-
-    def onSharpenImg(self):
-        if self.imgkey:
-            self.images[self.imgkey] = [i.filter(ImageFilter.SHARPEN) for i in self.images[self.imgkey]]
-            self.canvas.reset(self.images[self.imgkey])
-            self.canvas.redraw()
-
-    def onRotateRight90Img(self):
+        # TODO self.controller.writeData(path, ds) 
+ 
+    def onRotate(self):
         if self.imgkey:
             self.images[self.imgkey] = [i.rotate(90, expand=1) for i in self.images[self.imgkey]]
             self.canvas.reset(self.images[self.imgkey])
             self.canvas.redraw()
 
-    def onRotateRight180Img(self):
-        if self.imgkey:
-            self.images[self.imgkey] = [i.rotate(180, expand=1) for i in self.images[self.imgkey]]
-            self.canvas.reset(self.images[self.imgkey])
-            self.canvas.redraw()
-
-    def onFlipHorzImg(self):
+    def onFlipHorizontal(self):
         if self.imgkey:
             self.images[self.imgkey] = [i.transpose(Image.FLIP_LEFT_RIGHT) for i in self.images[self.imgkey]]
             self.canvas.reset(self.images[self.imgkey])
             self.canvas.redraw()
 
-    def onFlipVertImg(self):
+    def onFlipVertical(self):
         if self.imgkey:
             self.images[self.imgkey] = [i.transpose(Image.FLIP_TOP_BOTTOM) for i in self.images[self.imgkey]]
             self.canvas.reset(self.images[self.imgkey])
             self.canvas.redraw()
-
-    def onRevertImg(self):
+            
+    def onRevert(self):
         if self.imgkey:
             self.images[self.imgkey] = self.controller.generateImages(self.imgkey)
             self.canvas.reset(self.images[self.imgkey])
-            self.canvas.redraw()
+            self.canvas.redraw()  
+    
+    def onShowDICOMData(self, sid):  # TODO
+        # Clear all previously loaded elements
+        for c in filter(None, self.rightBar.winfo_children()):
+            c.destroy()
 
-    def onZoomIn(self):
-        if self.canvas:
-            self.canvas.zoomin()
-
-    def onZoomOut(self):
-        if self.canvas:
-            self.canvas.zoomout()
-
-    def onAnnotation(self):
-        if self.canvas:
-            self.canvas.description()
-
-    def onEqualizeImg(self):
+        # Create a Canvas widget
+        canvas = Canvas(self.rightBar, width=350, height=500)
+        canvas.pack(side=TOP, padx=5, pady=5, fill='both', expand=True) 
+        canvas.create_text(175, 150, text=self.descr[sid], font=("Arial", 10), fill="black", anchor="center")
+ 
+    def onAnalyze(self):
+        if self.imgkey:
+            # TODO Analyze with LLM the content of self.images[self.imgkey] 
+            pass              
+ 
+    def onEqualize(self):
+        # TODO https://pdf.sciencedirectassets.com/280203/1-s2.0-S1877050919X00198/1-s2.0-S1877050919321519
+        # Possible aproach with OpenCV
+        # Draw new image in separate ImageCanvas tab  
         if self.imgkey:
             self.images[self.imgkey] = [ImageOps.autocontrast(i, cutoff=2, ignore=2) for i in self.images[self.imgkey]]
             self.images[self.imgkey] = [ImageOps.equalize(i, mask=None) for i in self.images[self.imgkey]]
             self.canvas.reset(self.images[self.imgkey])
-            self.canvas.redraw()
+            self.canvas.redraw()    
 
-    def onAnimate(self):
-        ''' 
-        Animate DCOM Series 
-        '''
-        class RepeatTimer(Timer):
-            def run(self):
-                try:
-                    while not self.finished.wait(self.interval):
-                        self.function()
-                except Exception as e:
-                    # User has selected another image thumbnail from preview bar
-                    self.cancel()
+    def onSegment(self):
+        if self.imgkey:
+            # TODO Create segmentation of self.images[self.imgkey] and open it in separate ImageCanvas tab 
+            # self.canvas.reset(self.images[self.imgkey])
+            # self.canvas.redraw()     
+            pass    
 
-        if self.canvas:
-            timer = RepeatTimer(0.5, self.canvas.reindex)
-            timer.start()
+    def onNoiseReduct(self):
+        if self.imgkey:
+            # TODO Do noise reduction on self.images[self.imgkey] and open it in separate ImageCanvas tab 
+            # self.canvas.reset(self.images[self.imgkey])
+            # self.canvas.redraw()     
+            pass     
 
+    def onEdgeDetect(self):
+        if self.imgkey:
+            # TODO Do edge detection on self.images[self.imgkey] and open it in separate ImageCanvas tab 
+            # self.canvas.reset(self.images[self.imgkey])
+            # self.canvas.redraw()     
+            pass   
+                 
     def onDocumentation(self):
         webbrowser.open(DOCURL)
 

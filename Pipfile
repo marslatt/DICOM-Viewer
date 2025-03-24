@@ -7,5 +7,10 @@ name = "pypi"
 pillow = "*" 
 pydicom = "*"
 numpy = "*"
+torch = "*"
+matplotlib = "*"
+monai = "*"
+scipy = "*"
+rt-utils = "*"
 
 [dev-packages]

@@ -1,11 +1,9 @@
 import pydicom as pd
 # from pd.dataset import FileDataset, FileMetaDataset
-from pydicom.filereader import InvalidDicomError
-from zipfile import ZipFile, BadZipfile 
+from pydicom.filereader import InvalidDicomError 
 from dicom import DicomSeries, DicomDir  
 from PIL import Image, ImageTk
-from typing import Dict
-import zipfile
+from typing import Dict 
 import os
 
 # https://pydicom.github.io/pynetdicom/dev/examples/storage.html
@@ -21,7 +19,7 @@ class DicomIO():
         self.data: Dict[str, DicomSeries] = {}  # Dictionary containing all opened DicomSeries 
     
     def readData(self, path: str):
-        self.readZIP(path) if zipfile.is_zipfile(str(path)) else self.readDICOM(path)
+        self.readDICOM(path)  
         # TODO add readDICOMDIR(path)    
 
     def getData(self):
@@ -51,21 +49,7 @@ class DicomIO():
     def readDICOMDIR(self, path: str):
         # TODO
         pass   
-           
-    def readZIP(self, path: str): 
-        try:
-            with ZipFile(path, 'r') as zf:
-                zf.extractall(TMPDIR)
-                zippath = [os.path.join(TMPDIR, file) for file in os.listdir(TMPDIR)]            
-            return self.readDICOM(zippath)
-        except BadZipfile as e:
-            print(e)                
-        except Exception as e:
-            print(e)
-        finally:
-            for file in zippath:
-                os.remove(file)  # Clean up extracted files   
-
+ 
     def writeDICOM(self, path: str, ds: DicomSeries):
         '''
         meta = FileDataset(path)
