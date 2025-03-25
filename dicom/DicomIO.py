@@ -101,8 +101,8 @@ class DicomIO():
         except TypeError as e:
             print(e)            
 
-    def generateAttributeData(self, sid: str):
-        return self.data[sid].getStrAttributeData()
+    def generateTagData(self, sid: str):
+        return self.data[sid].getStrTagData()
 
 
 

@@ -1,5 +1,6 @@
 from pydicom.dataset import FileDataset 
 from typing import Dict
+from pydicom.datadict import keyword_for_tag
  
 class DicomSeries():
     '''
@@ -10,16 +11,10 @@ class DicomSeries():
         # NB: SeriesInstanceUID is the same within a series acquired in one scan. 
         self.serId = str(dcm.SeriesInstanceUID)
         # NB: Attributes in attribData are currently the same for all images in the series. # TODO
-        self.attribData = self.readAttributeData(dcm) # TODO
+        self.tagData = self.readTagData(dcm) # TODO
         self.imgData = {}  
  
-    def readAttributeData(self, dcm: FileDataset) -> Dict[str, str]:        
-        '''
-        attrib: Dict[str, str] = {} 
-        for tag, elem in dcm.items(): 
-            name = dcm.dir().get(tag)                
-            if tag_name:
-                attrib[name] = str(elem) 
+    def readTagData(self, dcm: FileDataset) -> Dict[str, str]:   
         '''
         data: Dict[str, str] = {}    
         # NB: StudyInstanceUID: Unique identifier of the study or scanning session.        
@@ -34,8 +29,15 @@ class DicomSeries():
         data['PatientBirthDate'] = str(dcm.PatientBirthDate)
         data['Modality'] = str(dcm.Modality)
         data['Manufacturer'] = str(dcm.Manufacturer)
-        return data   
-
+        return data  
+        '''     
+        data: Dict[str, str] = {} 
+        for tag, elem in dcm.items(): 
+            name = keyword_for_tag(tag)                
+            if name not in ['PixelData', 'IconImageSequence']:
+                data[name] = str(elem.value).strip()  # TODO bytes to str: elem.value.decode('utf-8'))              
+        return data  # TODO some elem.value contain list
+            
     def addImage(self, dcm: FileDataset):
         '''
         Add new image to the series
@@ -59,16 +61,16 @@ class DicomSeries():
     def getPreviewImageName(self):
         return self.ptnData['Modality']
 
-    def getAttributeData(self):
-        return self.attribData.values()
+    def getTagData(self):
+        return self.tagData.values()
 
-    def getStrAttributeData(self):
-        return '\n\n'.join(f"{key}: {value}" for key, value in self.attribData.items()) 
-  
+    def getStrTagData(self):  # TODO Incorrect formating of values (bytes to utf-8, lists)
+        return '\n\n'.join(f"{key}: {value}" for key, value in self.tagData.items())  
+             
     def anonymizePatientData(self):
-        self.attribData['PatientName'] = ''
-        self.attribData['PatientID'] = ''
-        self.attribData['PatientSex'] = ''
-        self.attribData['PatientBirthDate'] = ''
+        self.tagData['PatientName'] = ''
+        self.tagData['PatientID'] = ''
+        self.tagData['PatientSex'] = ''
+        self.tagData['PatientBirthDate'] = ''
 
 

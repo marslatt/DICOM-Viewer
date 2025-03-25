@@ -1,2 +1,3 @@
 from viewer.ImageCanvas import ImageCanvas
-from viewer.ImageViewer import ImageViewer
+from viewer.MainFrame import MainFrame
+# from viewer.SideBar import SideBar

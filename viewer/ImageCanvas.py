@@ -3,11 +3,10 @@ from tkinter import LEFT, BOTH, NW
 from PIL import Image, ImageTk 
 
 class ImageCanvas(Frame):
-    def __init__(self, master, imgArr, descr):
-        Frame.__init__(self, master)        
-        self.width = 1300 # canvas buffer width       
-        self.height = 1300 # canvas buffer height       
-        self.maxh = master.winfo_screenheight() - 200  # quasi-random MAX heigth 
+    def __init__(self, master, imgArr, descr=""):
+        super().__init__(master)     
+        self.maxh = master.winfo_screenheight() - 200  # MAX image heigth 
+        self.minw = 250  # MIN image width 
         self.descr = descr
         self.descrShow = True
         self.images = imgArr
@@ -16,7 +15,9 @@ class ImageCanvas(Frame):
         self.display = Canvas(self, bd=0, highlightthickness=0, bg='#000')
         self.display.pack(side=LEFT, fill=BOTH, expand='y')
         self.bind("<Configure>", self.resize)
-        self.bind_all("<MouseWheel>", self.reindex)
+        self.bind_all("<MouseWheel>", self.reindex) 
+        self.bind("<Key>", self.zoom)        
+        self.focus_set() # Make sure the frame can receive focus
 
     def reset(self, images):
         self.images = images
@@ -24,6 +25,12 @@ class ImageCanvas(Frame):
     def description(self):
         self.descrShow = not self.descrShow
         self.redrawAll()
+
+    def zoom(self, event): 
+        if event.keysym == "equal" and (event.state & 0x0004):  # 0x0004 is the modifier for Ctrl            
+            self.zoomin()
+        if event.keysym == "minus" and (event.state & 0x0004): 
+            self.zoomout()     
 
     def zoomin(self):
         h = self.currimg.height()
@@ -35,7 +42,7 @@ class ImageCanvas(Frame):
 
     def zoomout(self):
         w = self.currimg.width()
-        if w > 250:  # random MIN size
+        if w > self.minw:  
             h = self.currimg.height()
             self.rw = int(w / 1.5)
             self.rh = int(h / 1.5)
