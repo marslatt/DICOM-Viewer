@@ -39,11 +39,11 @@ class MainFrame(Frame):
         self.loadSideBars()  
 
     def loadSideBars(self):
-        self.previewBar = SideBar(self.master, side="left", width=150)
+        self.previewBar = SideBar(self.master, side="left", width=180)
         self.tagBar = SideBar(self.master, side="right", width=350)   
 
     def loadIcons(self): 
-        icons = ['openseries', 'exportimg',                  
+        icons = ['openseries', 'exportimg', 'anonymize',                   
                  'rotate', 'flipvert', 'fliphoriz', 'histogram', 'revert',
                  'analyze', 'segmentation', 'noisereduct', 'edgedetect',
                  'help' ]    
@@ -56,6 +56,7 @@ class MainFrame(Frame):
         button_data = [
             ("Open", 'openseries', self.onOpen),  # Open Series
             ("Export", 'exportimg', self.onExport),  # Export Image
+            ("Anonymize", 'anonymize', self.onAnonymize),  # Export Image
             ("Rotate", 'rotate', self.onRotate),  # Rotate 90 CW
             ("Flip Vertical", 'flipvert', self.onFlipVertical),  # Flip Vertical
             ("Flip Horizontal", 'fliphoriz', self.onFlipHorizontal),  # Flip Horizontal
@@ -72,7 +73,7 @@ class MainFrame(Frame):
             button = Button(self.menubar, relief=FLAT, compound=TOP, text=text, image=self.icons[icon], command=command, pady=5) 
             button.pack(side="left", padx=0, pady=0)
 
-            if text in ["Export", "Revert", "Extract Edges"]: 
+            if text in ["Anonymize", "Revert", "Extract Edges"]: 
                 separator = ttk.Separator(self.menubar, orient='vertical')
                 separator.pack(side=LEFT, padx=2, pady=0, fill='y')
 
@@ -178,7 +179,11 @@ class MainFrame(Frame):
         if self.imgkey:
             # TODO Create edge detection result img of self.images[self.imgkey], add to previewbar and open in ImgCanvas 
             pass   
-                 
+
+    def onAnonymize(self):
+        if self.imgkey: 
+            pass     
+
     def onDocumentation(self):
         webbrowser.open(DOCURL)
 

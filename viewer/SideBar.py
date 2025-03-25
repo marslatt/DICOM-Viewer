@@ -11,7 +11,7 @@ class SideBar(Frame):
         self.sidebar.pack(side=side, fill="y", padx=5, pady=5) 
 
         # Scrolling 
-        self.canvas = Canvas(self.sidebar)
+        self.canvas = Canvas(self.sidebar, width=width)
         self.canvas.pack(side="left", fill="both", expand=True) 
 
         self.scrollbar = Scrollbar(self.sidebar, orient="vertical", command=self.canvas.yview)
@@ -21,7 +21,7 @@ class SideBar(Frame):
         self.canvas.bind('<Configure>', lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
 
         # Content
-        self.content = Frame(self.canvas)
+        self.content = Frame(self.canvas, width=width)
         self.content.pack_propagate(True)   
         self.canvas.create_window((0, 0), window=self.content, anchor="nw") 
  
