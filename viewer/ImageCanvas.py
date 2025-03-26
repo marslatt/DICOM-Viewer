@@ -57,7 +57,7 @@ class ImageCanvas(Frame):
 
     def reindex(self, event=None):
         self.index = self.index + 1 if self.index < len(self.images) - 1 else 0
-        self.redraw()
+        self.redraw()  # TODO Error _tkinter.TclError: invalid command name ".!imagecanvas.!canvas"
 
     def redrawAll(self):
         resized = self.images[self.index].resize((self.rw, self.rh), Image.ADAPTIVE)
@@ -71,6 +71,8 @@ class ImageCanvas(Frame):
     def redraw(self):
         resized = self.images[self.index].resize((self.rw, self.rh), Image.ADAPTIVE)
         self.currimg = ImageTk.PhotoImage(resized)
-        self.display.delete("IMG")
+        self.display.delete("IMG") # TODO Error _tkinter.TclError: invalid command name ".!imagecanvas.!canvas"
         self.display.create_image(0, 0, image=self.currimg, anchor=NW, tags="IMG")
 
+# TODO Error _tkinter.TclError: invalid command name ".!imagecanvas.!canvas"
+# self.tk.call((self._w, 'delete') + args)

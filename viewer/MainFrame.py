@@ -78,7 +78,6 @@ class MainFrame(Frame):
                 separator.pack(side=LEFT, padx=2, pady=0, fill='y')
 
     def reloadPreviewBar(self):
-        self.previewBar.clear()
         # Add list of preview images
         for ds in self.controller.getData():
             sid = ds.getSerId() 
@@ -90,8 +89,7 @@ class MainFrame(Frame):
             # Create image series
             self.images[sid] = self.controller.generateImages(sid)
             # Create description
-            self.descr[sid] = self.controller.generateTagData(sid)              
-        # self.previewBar.refresh()   # TODO Does NOT recalculate size after adding children!
+            self.descr[sid] = self.controller.generateTagData(sid) 
 
     def showImgCanvas(self, e):
         if self.canvas:
@@ -103,9 +101,8 @@ class MainFrame(Frame):
         self.showImgTags(self.imgkey)  
         
     def showImgTags(self, sid): 
-        self.tagBar.clear()  
-        self.tagBar.addLabel(text=self.descr[sid])
-        # self.tagBar.refresh()  # TODO Does NOT recalculate size after adding children!
+        self.tagBar.clearContent()  
+        self.tagBar.addLabel(text=self.descr[sid]) 
  
     def onOpen(self):
         self.controller.clearData()
@@ -116,10 +113,12 @@ class MainFrame(Frame):
         )
         if files:
             self.controller.readData(files)
-            # Clear view
-            self.tagBar.clear()
+            # Clear view            
+            self.previewBar.clearContent()
+            self.tagBar.clearContent()
             if self.canvas:
                 self.canvas.destroy()
+            # Load preview images    
             self.reloadPreviewBar()
  
     def onExport(self):
