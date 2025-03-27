@@ -1,6 +1,6 @@
 from tkinter import Frame, Canvas, Scrollbar, Label
 
-# TODO Fix aligning of text in content to the left instead of center! Fix height of canvas and scrollbar after adding children!
+# TODO Fix aligning of text in content to the left instead of center!  
 
 class SideBar(Frame):
     def __init__(self, master, side="left", width=0):
