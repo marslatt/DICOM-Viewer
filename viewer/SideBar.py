@@ -29,7 +29,7 @@ class SideBar(Frame):
         self.canvas.configure(scrollregion=(0, 0, 1, 1)) # Reset scroll when there are no widgets in the canvas 
    
     def addLabel(self, text="", image=None, name="", bindFunc=None): 
-        label = Label(self.content, image=image, name=name, text=text, anchor="nw", wraplength=300)
+        label = Label(self.content, image=image, name=name, text=text, fg="#003399", anchor="w", wraplength=300, justify='left', font=("Helvetica", 10))
         if bindFunc:
             label.bind("<Button-1>", lambda e: bindFunc(e))  
         label.pack(padx=10, pady=10, anchor="nw")    

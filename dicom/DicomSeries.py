@@ -1,9 +1,11 @@
 from pydicom.dataset import FileDataset 
-from typing import Dict
+from pydicom.sequence import Sequence
 from pydicom.datadict import keyword_for_tag
 from pydicom.pixels import pixel_array
 from pydicom.multival import MultiValue
-import numpy as np
+from typing import Dict
+import numpy as np 
+# import re
  
 class DicomSeries():
     '''
@@ -20,11 +22,21 @@ class DicomSeries():
     def readTagData(self, dcm: FileDataset) -> Dict[str, str]:        
         data: Dict[str, str] = {} 
         for tag, elem in dcm.items(): 
-            name = keyword_for_tag(tag)                
-            if name not in ['PixelData', 'IconImageSequence']:
-                data[name] = str(elem.value).strip()  # TODO bytes to str: elem.value.decode('utf-8'))              
-        return data  # TODO some elem.value contain list
-            
+            key = keyword_for_tag(tag) or "Unknown Tag"             
+            if key not in ['PixelData', 'IconImageSequence']:
+                name = f"{tag} {key}" 
+                value = self.formatTagValue(dcm[tag].value)
+                data[name] = value            
+        return data  
+    
+    def formatTagValue(self, value): 
+        if isinstance(value, str):
+          return value.strip()    
+        elif isinstance(value, Sequence):
+            strValue = '\n'.join(str(x) for x in value)
+            # strValue = re.sub(r"\s+", "  ", strValue)
+            return f"[\n{strValue.strip()}\n]"   
+
     def addImage(self, dcm: FileDataset):
         '''
         Add new image to the series
@@ -83,7 +95,7 @@ class DicomSeries():
         return self.tagData.values()
 
     def getStrTagData(self):  # TODO Incorrect formating of values (bytes to utf-8, lists)
-        return '\n\n'.join(f"{key}: {value}" for key, value in self.tagData.items())  
+        return '\n\n'.join(f"{key}:\n{value}" for key, value in self.tagData.items())  
              
     def anonymizePatientData(self):
         self.tagData['PatientName'] = ''

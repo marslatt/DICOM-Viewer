@@ -73,7 +73,7 @@ class MainFrame(Frame):
             button = Button(self.menubar, relief=FLAT, compound=TOP, text=text, image=self.icons[icon], command=command, pady=5) 
             button.pack(side="left", padx=0, pady=0)
 
-            if text in ["Anonymize", "Revert", "Extract Edges"]: 
+            if text in ["Anonymize", "Revert", "Contouring"]: 
                 separator = ttk.Separator(self.menubar, orient='vertical')
                 separator.pack(side=LEFT, padx=2, pady=0, fill='y')
 
