@@ -30,7 +30,7 @@ class MainFrame(Frame):
         self.loadUI()
  
     def loadUI(self):
-        self.master.title("DICOM AI Lab")
+        self.master.title("DICOM AI Viewer")
         self.master.state('zoomed')
         self.master.overrideredirect(False)
         self.master.bind("<Escape>", lambda event: self.master.quit())
@@ -54,18 +54,18 @@ class MainFrame(Frame):
         self.menubar.pack(side=TOP, fill=X)
 
         button_data = [
-            ("Open", 'openseries', self.onOpen),  # Open Series
-            ("Export", 'exportimg', self.onExport),  # Export Image
-            ("Anonymize", 'anonymize', self.onAnonymize),  # Export Image
-            ("Rotate", 'rotate', self.onRotate),  # Rotate 90 CW
-            ("Flip Vertical", 'flipvert', self.onFlipVertical),  # Flip Vertical
-            ("Flip Horizontal", 'fliphoriz', self.onFlipHorizontal),  # Flip Horizontal
-            ("Equalize", 'histogram', self.onEqualize),  # Equalize Histogram
+            ("Open", 'openseries', self.onOpen),  # Open DICOM Series
+            ("Export", 'exportimg', self.onExport),  # Export Slice as Image
+            ("Anonymize", 'anonymize', self.onAnonymize),  # Anonymize DICOM 
+            ("Rotate", 'rotate', self.onRotate),  # Rotate 90 CCW
+            ("Flip Vert", 'flipvert', self.onFlipVertical),  # Flip Vertical
+            ("Flip Horiz ", 'fliphoriz', self.onFlipHorizontal),  # Flip Horizontal
+            ("Histogram", 'histogram', self.onEqualize),  # Equalize Histogram
             ("Revert", 'revert', self.onRevert),  # Revert Changes 
             ("LLM Analysis", 'analyze', self.onAnalyze),  # Analyze with LLM  
             ("Segmentation", 'segmentation', self.onSegment),  # Segmentation
-            ("Denoise", 'noisereduct', self.onNoiseReduct),  # Noise Reduction
-            ("Extract Edges", 'edgedetect', self.onEdgeDetect),  # Edge Detection
+            ("Denoising", 'noisereduct', self.onNoiseReduct),  # Noise Reduction
+            ("Contouring", 'edgedetect', self.onEdgeDetect),  # Edge Detection
             ("Help", 'help', self.onDocumentation)  # Open Documentation
         ]
 
