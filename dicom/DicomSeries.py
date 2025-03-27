@@ -33,7 +33,7 @@ class DicomSeries():
         imgId = str(dcm.SOPInstanceUID) 
         imgArr = pixel_array(dcm)
  
-        # Some DICOM images pixel values may be stored in a scaled format - using "rescale slope" and "rescale intercept" values.
+        # Some DICOM images may have pixel values stored in a scaled format - using "rescale slope" and "rescale intercept" values.
         # Adjust with slope/intercept for displaying the pixel values correctly.
         slope = dcm.RescaleSlope if 'RescaleSlope' in dcm else 1
         intercept = dcm.RescaleIntercept if 'RescaleIntercept' in dcm else 0
@@ -48,10 +48,10 @@ class DicomSeries():
         if photometricIntr == "MONOCHROME1":  
             imgArr = np.max(imgArr) - imgArr # Negative values indicate white
 
-        # Windowing = Adjusting the Range of Pixel Intensities, applying a "window center" and "window width" to calculate 
+        # Windowing = Adjusting the Range of Pixel Intensities, applying "window center" and "window width" to calculate 
         # the displayed intensity range.       
-        winCenter = dcm.get("WindowCenter") if 'WindowCenter' in dcm else None
-        winWidth = dcm.get("WindowWidth") if 'WindowWidth' in dcm else None
+        winCenter = dcm.WindowCenter if 'WindowCenter' in dcm else None
+        winWidth = dcm.WindowWidth if 'WindowWidth' in dcm else None
         if winCenter and winWidth:
             winCenter = winCenter[0] if isinstance(winCenter, MultiValue) else winCenter
             winWidth = winWidth[0] if isinstance(winWidth, MultiValue) else winWidth
