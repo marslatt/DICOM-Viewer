@@ -1,7 +1,5 @@
 from tkinter import Frame, Canvas, Scrollbar, Label
 
-# TODO Fix aligning of text in content to the left instead of center!  
-
 class SideBar(Frame):
     def __init__(self, master, side="left", width=0):
         super().__init__(master)
@@ -15,7 +13,7 @@ class SideBar(Frame):
 
     def loadCanvas(self):        
         self.canvas = Canvas(self.sidebar, width=self.width)
-        self.canvas.pack(side="left", fill="both", expand=True)  # once packed, the height does not change after adding new elements
+        self.canvas.pack(side="left", fill="both", expand=True) 
         self.scrollbar = Scrollbar(self.sidebar, orient="vertical", command=self.canvas.yview)
         self.scrollbar.pack(side="right", fill="y", expand=True) 
         self.canvas.configure(yscrollcommand=self.scrollbar.set)

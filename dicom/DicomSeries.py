@@ -3,7 +3,7 @@ from pydicom.sequence import Sequence
 from pydicom.datadict import keyword_for_tag
 from pydicom.pixels import pixel_array
 from pydicom.multival import MultiValue
-from typing import Dict
+from monai.transforms import ToTensor #, Compose, Resize
 import numpy as np 
 # import re
  
@@ -15,19 +15,19 @@ class DicomSeries():
     def __init__(self, dcm: FileDataset):            
         # SeriesInstanceUID is the same within a series acquired in one scan. 
         self.serId = str(dcm.SeriesInstanceUID)
-        # TODO Attributes in attribData are currently the same for all images in the series. 
-        self.tagData = self.readTagData(dcm) # TODO
-        self.imgData = {}  
+        self.imgData = {} 
+        self.tagData = {}
+        self.readTagData(dcm)         
+        self.addImage(dcm) 
  
-    def readTagData(self, dcm: FileDataset) -> Dict[str, str]:        
-        data: Dict[str, str] = {} 
+    # TODO Listed tags in tagData are currently not images-specific. Divide tags into sections.
+    def readTagData(self, dcm: FileDataset):
         for tag, elem in dcm.items(): 
-            key = keyword_for_tag(tag) or "Unknown Tag"             
+            key = keyword_for_tag(tag) or "UnknownTag"             
             if key not in ['PixelData', 'IconImageSequence']:
                 name = f"{tag} {key}" 
                 value = self.formatTagValue(dcm[tag].value)
-                data[name] = value            
-        return data  
+                self.tagData[name] = value             
     
     def formatTagValue(self, value): 
         if isinstance(value, str):
@@ -41,55 +41,52 @@ class DicomSeries():
         '''
         Add new image to the series
         '''  
-        # Images in imgData are ordered by SOPInstanceUID, which should be unique for every image. 
-        imgId = str(dcm.SOPInstanceUID) 
-        imgArr = pixel_array(dcm)
- 
-        # Some DICOM images may have pixel values stored in a scaled format - using "rescale slope" and "rescale intercept" values.
-        # Adjust with slope/intercept for displaying the pixel values correctly.
-        slope = dcm.RescaleSlope if 'RescaleSlope' in dcm else 1
-        intercept = dcm.RescaleIntercept if 'RescaleIntercept' in dcm else 0
-        imgArr = slope * imgArr + intercept   
+        try:
+            # Images in imgData are ordered by SOPInstanceUID, which should be unique for every image. 
+            imgId = str(dcm.SOPInstanceUID) 
+            imgArr = pixel_array(dcm)
+    
+            # Some DICOM images may have pixel values stored in a scaled format - using "rescale slope" and "rescale intercept" values.
+            # Adjust with slope/intercept for displaying the pixel values correctly.
+            slope = float(dcm.RescaleSlope) if 'RescaleSlope' in dcm else 1  # float
+            intercept = float(dcm.RescaleIntercept) if 'RescaleIntercept' in dcm else 0 # float
+            imgArr = slope * imgArr + intercept   
 
-        # PhotometricInterpretation tag specifies how to interpret pixel data in terms of color or grayscale representation. 
-        # MONOCHROME1: Negative pixel values = white (bright), positive pixel values = black (dark).
-        # MONOCHROME2: Positive pixel values = white (bright), negative pixel values = black (dark).
-        # RGB: For true color images
-        # YBR_FULL or YBR_PARTIAL: For images in YCbCr color space (used for some color images)
-        photometricIntr = dcm.PhotometricInterpretation 
-        if photometricIntr == "MONOCHROME1":  
-            imgArr = np.max(imgArr) - imgArr # Negative values indicate white
+            # PhotometricInterpretation tag specifies how to interpret pixel data in terms of color or grayscale representation. 
+            # MONOCHROME1: Negative pixel values = white (bright), positive pixel values = black (dark).
+            # MONOCHROME2: Positive pixel values = white (bright), negative pixel values = black (dark).
+            # RGB: For true color images
+            # YBR_FULL or YBR_PARTIAL: For images in YCbCr color space (used for some color images)
+            photometricIntr = dcm.PhotometricInterpretation 
+            if photometricIntr == "MONOCHROME1":  
+                imgArr = np.max(imgArr) - imgArr # Negative values indicate white
 
-        # Windowing = Adjusting the Range of Pixel Intensities, applying "window center" and "window width" to calculate 
-        # the displayed intensity range.       
-        winCenter = dcm.WindowCenter if 'WindowCenter' in dcm else None
-        winWidth = dcm.WindowWidth if 'WindowWidth' in dcm else None
-        if winCenter and winWidth:
-            winCenter = winCenter[0] if isinstance(winCenter, MultiValue) else winCenter
-            winWidth = winWidth[0] if isinstance(winWidth, MultiValue) else winWidth
-            lowerBound = winCenter - winWidth // 2
-            upperBound = winCenter + winWidth // 2
-            # Clip the pixel data to the window range
-            imgArr = np.clip(imgArr, lowerBound, upperBound)
-            # Normalize to 0-255 for display purposes
-            imgArr = ((imgArr - lowerBound) / (upperBound - lowerBound) * 255).astype(np.uint16)  
+            # Windowing = Adjusting the Range of Pixel Intensities, applying "window center" and "window width" to calculate 
+            # the displayed intensity range.       
+            winCenter = dcm.WindowCenter if 'WindowCenter' in dcm else None
+            winWidth = dcm.WindowWidth if 'WindowWidth' in dcm else None
+            if winCenter and winWidth:
+                winCenter = float(winCenter[0]) if isinstance(winCenter, MultiValue) else float(winCenter)
+                winWidth = float(winWidth[0]) if isinstance(winWidth, MultiValue) else float(winWidth)
+                lowerBound = winCenter - winWidth // 2
+                upperBound = winCenter + winWidth // 2
+                # Clip the pixel data to the window range
+                imgArr = np.clip(imgArr, lowerBound, upperBound)
+                # Normalize to 0-255 for display purposes
+                imgArr = ((imgArr - lowerBound) / (upperBound - lowerBound) * 255).astype(np.uint16)  
 
-        self.imgData[imgId] = imgArr 
+            self.imgData[imgId] = imgArr 
+        except Exception as e:
+            print(e)    
 
     def getSerId(self):
-        return self.serId
-    
-    def getImgId(self):
-        return self.imgId
+        return self.serId 
 
     def getImageData(self):
         return self.imgData.values() 
 
     def getPreviewImageData(self):
         return next(iter(self.imgData.values()), None)
-
-    def getPreviewImageName(self):
-        return self.ptnData['Modality']
 
     def getTagData(self):
         return self.tagData.values()
@@ -103,4 +100,17 @@ class DicomSeries():
         self.tagData['PatientSex'] = ''
         self.tagData['PatientBirthDate'] = ''
 
+    # TODO
+    def transformToTensor(self): #, size: tuple):
+        '''
+        Convert an DICOM pixel_array into a PyTorch tensor, as expected by PyTorch-based models
+        '''
+        return {imgId: ToTensor(imgArr) for imgId, imgArr in self.imgData.items()} 
+    
+        # transform = Compose([ Resize(spatial_size=size), ToTensor() ])
+        #return {imgId: transform(imgArr) for imgId, imgArr in self.imgData.items()}  
+       
+    
+
+    
 

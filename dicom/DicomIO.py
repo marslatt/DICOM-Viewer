@@ -1,9 +1,8 @@
-import pydicom as pd
-# from pd.dataset import FileDataset, FileMetaDataset
+from pydicom import dcmread
+# from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.filereader import InvalidDicomError 
 from dicom import DicomSeries, DicomDir  
-from PIL import Image, ImageTk
-from typing import Dict 
+from PIL import Image, ImageTk 
 import os
 
 # https://pydicom.github.io/pynetdicom/dev/examples/storage.html
@@ -16,9 +15,9 @@ class DicomIO():
     DICOM IO Controller
     '''
     def __init__(self):       
-        self.data: Dict[str, DicomSeries] = {}  # Dictionary containing all opened DicomSeries 
+        self.data = {}  # Dictionary containing all opened DicomSeries 
     
-    def readData(self, path: str):
+    def readData(self, path: tuple):
         self.readDICOM(path)  
         # TODO add readDICOMDIR(path)    
 
@@ -26,19 +25,22 @@ class DicomIO():
         return self.data.values()
     
     def clearData(self):
-        self.data.clear()
+        self.data.clear() 
  
-    def readDICOM(self, path: str):
+    def readDICOM(self, path: tuple):
         try:
             for file in path:
-                dcm = pd.dcmread(file)  # pydicom.dataset.FileDataset object
-                sid = str(dcm.SeriesInstanceUID)
+                dcm = dcmread(file)  # pydicom.dataset.FileDataset object
+                sid = str(dcm.SeriesInstanceUID) 
+                if not sid:
+                    raise Exception("SeriesInstanceUID value is empty or invalid.") 
                 if sid not in self.data:
                     self.data[sid] = DicomSeries(dcm)
-                self.data[sid].addImage(dcm) 
+                else:
+                    self.data[sid].addImage(dcm) 
         except InvalidDicomError as e:  # non-dicom file
             print(e)   
-        except AttributeError as e:  # no-SUID kind of dicom file
+        except AttributeError as e:  # no-SeriesInstanceUID kind of dicom file
             print(e)
         except Exception as e:
             print(e)
@@ -46,11 +48,11 @@ class DicomIO():
     def removeDICOM(self, sid: str):
         self.data.remove(sid) 
 
-    def readDICOMDIR(self, path: str):
+    def readDICOMDIR(self, path: tuple):
         # TODO
         pass   
  
-    def writeDICOM(self, path: str, ds: DicomSeries):
+    def writeDICOM(self, path: tuple, ds: DicomSeries):  
         '''
         meta = FileDataset(path)
         meta.MediaStorageSOPClassUID = pd._storage_sopclass_uids.generate_uid().MRImageStorage
